@@ -1,0 +1,332 @@
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Cambio de Turno</title>
+  <style>
+    :root{
+      --bg: #cfe8ff; /* Celeste suave */
+      --card: #ffffff;
+      --accent: #0d47a1;
+      --muted: #455a64;
+      --danger: #c62828;
+      --warning: #f9a825;
+      --success: #2e7d32;
+      --print-btn: #4e342e; /* Café para imprimir */
+    }
+    html, body{ margin:0; height:100%; font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Noto Sans", "Open Sans", sans-serif; background: var(--bg); color:#0a0a0a; }
+    /* Título centrado y subrayado */
+    header{ padding: 20px 16px; text-align: center; }
+    header h1{ margin:0; font-size: 28px; font-weight: 800; text-decoration: underline; }
+    .top-actions{ display:flex; gap:8px; justify-content:center; margin-top:10px; }
+
+    .container{ max-width: 1000px; margin: 0 auto; padding: 12px 16px 24px; }
+    .grid{ display:grid; grid-template-columns: 1fr; gap: 16px; }
+    .card{ background: var(--card); border-radius: 14px; box-shadow: 0 4px 16px rgba(0,0,0,.08); overflow: hidden; }
+    .card header{ padding: 12px 16px; border-bottom: 1px solid #e3eaf2; }
+    .card h2{ margin: 0; font-size: 20px; }
+    .content{ padding: 16px; }
+    label{ display:block; font-size: 13px; color: var(--muted); margin-bottom: 6px; }
+    input[type=text], textarea, select{ width: 100%; border: 1px solid #cdd4da; border-radius: 10px; padding: 10px 12px; font-size: 14px; background: #fafafa; }
+    textarea{ min-height: 90px; resize: vertical; }
+    .actions{ display:flex; gap:8px; flex-wrap: wrap; margin-top: 10px; }
+    button{ appearance:none; border:none; border-radius: 10px; padding: 10px 14px; font-weight: 600; cursor: pointer; background: var(--accent); color:#fff; }
+    button.secondary{ background:#546e7a; }
+    button.warning{ background: var(--warning); color:#222; }
+    button.danger{ background: var(--danger); }
+    button.success{ background: var(--success); }
+    button.print{ background: var(--print-btn); }
+
+    table{ width:100%; border-collapse: collapse; margin-top: 12px; }
+    th, td{ border-bottom: 1px solid #e3eaf2; padding: 8px; text-align: left; font-size: 14px; }
+    th{ font-weight: 700; color:#263238; }
+    .empty{ color:#607d8b; font-style: italic; padding: 8px 0; }
+
+    .toast{ position: fixed; bottom: 12px; left: 12px; background:#263238; color:#fff; padding:10px 14px; border-radius:10px; box-shadow:0 4px 12px rgba(0,0,0,.2); display:none; }
+
+    /* Estilos de impresión: solo contenido */
+    @media print {
+      header, .toast{ display:none !important; }
+      .container{ margin:0; }
+      .card{ box-shadow:none; border: 1px solid #ddd; }
+      .card header{ border-bottom: 1px solid #ddd; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Cambio de Turno</h1>
+    <div class="top-actions">
+      <button type="button" id="btnExportCsv">Exportar CSV (Incidencias)</button>
+      <button type="button" class="print" id="btnPrint">Imprimir</button>
+    </div>
+  </header>
+
+  <div class="container">
+    <div class="grid">
+      <!-- Ítem: Incidencias -->
+      <section class="card" id="incidencias">
+        <header><h2>Incidencias</h2></header>
+        <div class="content">
+          <form id="formIncidencia">
+            <input type="hidden" name="Id" />
+            <label>Título</label>
+            <input type="text" name="Title" placeholder="Título de la incidencia" required />
+            <label>Descripción</label>
+            <textarea name="Descripcion" placeholder="Detalle o pasos realizados"></textarea>
+            <label>Prioridad</label>
+            <select name="Prioridad" required>
+              <option value="Alta">Alta</option>
+              <option value="Media" selected>Media</option>
+              <option value="Baja">Baja</option>
+            </select>
+            <div class="actions">
+              <button type="submit" class="success">Guardar</button>
+              <button type="button" class="secondary" id="btnResetInc">Limpiar</button>
+            </div>
+          </form>
+
+          <!-- Visualización automática -->
+          <div class="list">
+            <table>
+              <thead><tr><th>ID</th><th>Título</th><th>Descripción</th><th>Prioridad</th><th>Acciones</th></tr></thead>
+              <tbody id="rowsInc"></tbody>
+            </table>
+            <div class="empty" id="emptyInc">No hay incidencias registradas.</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Ítem: Requerimientos -->
+      <section class="card" id="requerimientos">
+        <header><h2>Requerimientos</h2></header>
+        <div class="content">
+          <form id="formReq">
+            <input type="hidden" name="Id" />
+            <label>Título</label>
+            <input type="text" name="Title" placeholder="Título del requerimiento" required />
+            <label>Descripción</label>
+            <textarea name="Descripcion" placeholder="Detalle, alcance o notas"></textarea>
+            <div class="actions">
+              <button type="submit" class="success">Guardar</button>
+              <button type="button" class="secondary" id="btnResetReq">Limpiar</button>
+            </div>
+          </form>
+          <div class="list">
+            <table>
+              <thead><tr><th>ID</th><th>Título</th><th>Descripción</th><th>Acciones</th></tr></thead>
+              <tbody id="rowsReq"></tbody>
+            </table>
+            <div class="empty" id="emptyReq">No hay requerimientos registrados.</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Ítem: Rondas Diarias -->
+      <section class="card" id="rondas">
+        <header><h2>Rondas Diarias</h2></header>
+        <div class="content">
+          <form id="formRonda">
+            <input type="hidden" name="Id" />
+            <label>Turno</label>
+            <select name="Turno" required>
+              <option value="Día">Día</option>
+              <option value="Tarde">Tarde</option>
+              <option value="Noche">Noche</option>
+            </select>
+            <label>Observación</label>
+            <textarea name="Observacion" placeholder="Notas de la ronda (equipos, salas, alarmas)"></textarea>
+            <div class="actions">
+              <button type="submit" class="success">Guardar</button>
+              <button type="button" class="secondary" id="btnResetRonda">Limpiar</button>
+            </div>
+          </form>
+          <div class="list">
+            <table>
+              <thead><tr><th>ID</th><th>Turno</th><th>Observación</th><th>Acciones</th></tr></thead>
+              <tbody id="rowsRonda"></tbody>
+            </table>
+            <div class="empty" id="emptyRonda">No hay rondas registradas.</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Ítem: Cambios Importantes -->
+      <section class="card" id="cambios">
+        <header><h2>Cambios Importantes</h2></header>
+        <div class="content">
+          <form id="formCambio">
+            <input type="hidden" name="Id" />
+            <label>Título</label>
+            <input type="text" name="Title" placeholder="Título del cambio" required />
+            <label>Detalle</label>
+            <textarea name="Detalle" placeholder="Descripción del cambio y su impacto"></textarea>
+            <div class="actions">
+              <button type="submit" class="success">Guardar</button>
+              <button type="button" class="secondary" id="btnResetCambio">Limpiar</button>
+            </div>
+          </form>
+          <div class="list">
+            <table>
+              <thead><tr><th>ID</th><th>Título</th><th>Detalle</th><th>Acciones</th></tr></thead>
+              <tbody id="rowsCambio"></tbody>
+            </table>
+            <div class="empty" id="emptyCambio">No hay cambios registrados.</div>
+          </div>
+        </div>
+      </section>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <script>
+    // ===== Helpers =====
+    const qs = (sel, ctx=document) => ctx.querySelector(sel);
+    const toast = (msg) => { const t = qs('#toast'); t.textContent = msg; t.style.display='block'; setTimeout(()=>{ t.style.display='none'; }, 2000); };
+    function escapeHtml(str){
+      return String(str).replace(/[&<>\"']/g, m => ({
+        '&':'&amp;', '<':'&lt;', '>':'&gt;', '\"':'&quot;', "'":'&#039;'
+      })[m]);
+    }
+    function createStore(key){
+      return {
+        all(){ return JSON.parse(localStorage.getItem(key) || '[]'); },
+        save(arr){ localStorage.setItem(key, JSON.stringify(arr)); },
+        add(item){ const arr = this.all(); item.Id = Date.now(); arr.push(item); this.save(arr); return item; },
+        remove(id){ const arr = this.all(); this.save(arr.filter(x => x.Id !== id)); }
+      };
+    }
+
+    // ===== Stores =====
+    const incStore = createStore('cambio-turno:Incidencias');
+    const reqStore = createStore('cambio-turno:Requerimientos');
+    const rondaStore = createStore('cambio-turno:RondasDiarias');
+    const cambStore = createStore('cambio-turno:CambiosImportantes');
+
+    // ===== Renderers =====
+    function renderInc(){
+      const tbody = qs('#rowsInc'); const empty = qs('#emptyInc'); const rows = incStore.all();
+      tbody.innerHTML = '';
+      if(rows.length === 0){ empty.style.display='block'; return; } else { empty.style.display='none'; }
+      rows.forEach(item => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${item.Id}</td>
+          <td>${escapeHtml(item.Title || '')}</td>
+          <td>${escapeHtml(item.Descripcion || '')}</td>
+          <td>${escapeHtml(item.Prioridad || '')}</td>
+          <td><button type="button" class="danger" data-ctx="inc" data-action="delete" data-id="${item.Id}">Eliminar</button></td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+    function renderReq(){
+      const tbody = qs('#rowsReq'); const empty = qs('#emptyReq'); const rows = reqStore.all();
+      tbody.innerHTML = '';
+      if(rows.length === 0){ empty.style.display='block'; return; } else { empty.style.display='none'; }
+      rows.forEach(item => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${item.Id}</td>
+          <td>${escapeHtml(item.Title || '')}</td>
+          <td>${escapeHtml(item.Descripcion || '')}</td>
+          <td><button type="button" class="danger" data-ctx="req" data-action="delete" data-id="${item.Id}">Eliminar</button></td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+    function renderRonda(){
+      const tbody = qs('#rowsRonda'); const empty = qs('#emptyRonda'); const rows = rondaStore.all();
+      tbody.innerHTML = '';
+      if(rows.length === 0){ empty.style.display='block'; return; } else { empty.style.display='none'; }
+      rows.forEach(item => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${item.Id}</td>
+          <td>${escapeHtml(item.Turno || '')}</td>
+          <td>${escapeHtml(item.Observacion || '')}</td>
+          <td><button type="button" class="danger" data-ctx="ronda" data-action="delete" data-id="${item.Id}">Eliminar</button></td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+    function renderCambio(){
+      const tbody = qs('#rowsCambio'); const empty = qs('#emptyCambio'); const rows = cambStore.all();
+      tbody.innerHTML = '';
+      if(rows.length === 0){ empty.style.display='block'; return; } else { empty.style.display='none'; }
+      rows.forEach(item => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${item.Id}</td>
+          <td>${escapeHtml(item.Title || '')}</td>
+          <td>${escapeHtml(item.Detalle || '')}</td>
+          <td><button type="button" class="danger" data-ctx="cambio" data-action="delete" data-id="${item.Id}">Eliminar</button></td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    // ===== Delegación para eliminar en todas las secciones =====
+    document.body.addEventListener('click', (ev) => {
+      const btn = ev.target.closest('button[data-action="delete"]');
+      if(!btn) return;
+      const id = Number(btn.getAttribute('data-id'));
+      const ctx = btn.getAttribute('data-ctx');
+      if(ctx === 'inc'){ incStore.remove(id); renderInc(); toast('Incidencia eliminada'); }
+      else if(ctx === 'req'){ reqStore.remove(id); renderReq(); toast('Requerimiento eliminado'); }
+      else if(ctx === 'ronda'){ rondaStore.remove(id); renderRonda(); toast('Ronda eliminada'); }
+      else if(ctx === 'cambio'){ cambStore.remove(id); renderCambio(); toast('Cambio eliminado'); }
+    });
+
+    // ===== Guardar (crear) por sección =====
+    qs('#formIncidencia').addEventListener('submit', (e) => {
+      e.preventDefault(); const f = e.currentTarget;
+      const payload = { Title: f.Title.value.trim(), Descripcion: f.Descripcion.value.trim(), Prioridad: f.Prioridad.value };
+      if(!payload.Title){ toast('El título es obligatorio'); return; }
+      incStore.add(payload); toast('Incidencia guardada'); f.reset(); f.Prioridad.value='Media'; renderInc();
+    });
+    qs('#formReq').addEventListener('submit', (e) => {
+      e.preventDefault(); const f = e.currentTarget;
+      const payload = { Title: f.Title.value.trim(), Descripcion: f.Descripcion.value.trim() };
+      if(!payload.Title){ toast('El título es obligatorio'); return; }
+      reqStore.add(payload); toast('Requerimiento guardado'); f.reset(); renderReq();
+    });
+    qs('#formRonda').addEventListener('submit', (e) => {
+      e.preventDefault(); const f = e.currentTarget;
+      const payload = { Turno: f.Turno.value, Observacion: f.Observacion.value.trim() };
+      if(!payload.Turno){ toast('El turno es obligatorio'); return; }
+      rondaStore.add(payload); toast('Ronda guardada'); f.reset(); renderRonda();
+    });
+    qs('#formCambio').addEventListener('submit', (e) => {
+      e.preventDefault(); const f = e.currentTarget;
+      const payload = { Title: f.Title.value.trim(), Detalle: f.Detalle.value.trim() };
+      if(!payload.Title){ toast('El título es obligatorio'); return; }
+      cambStore.add(payload); toast('Cambio guardado'); f.reset(); renderCambio();
+    });
+
+    // ===== Botones Limpiar =====
+    qs('#btnResetInc').addEventListener('click', () => { const f = qs('#formIncidencia'); f.reset(); f.Prioridad.value='Media'; toast('Formulario Incidencias limpio'); });
+    qs('#btnResetReq').addEventListener('click', () => { qs('#formReq').reset(); toast('Formulario Requerimientos limpio'); });
+    qs('#btnResetRonda').addEventListener('click', () => { qs('#formRonda').reset(); toast('Formulario Rondas limpio'); });
+    qs('#btnResetCambio').addEventListener('click', () => { qs('#formCambio').reset(); toast('Formulario Cambios limpio'); });
+
+    // ===== Exportar CSV (solo Incidencias, simple) =====
+    function csvEscape(val){ const s = String(val ?? ''); const clean = s.replace(/\r\n|\n|\r/g, '\\n'); return '"' + clean.replace(/"/g, '""') + '"'; }
+    function exportCsv(){
+      const rows = incStore.all(); const headers = ['ID','Título','Descripción','Prioridad']; const data = [headers.join(',')];
+      rows.forEach(x => { const r = [x.Id, x.Title||'', x.Descripcion||'', x.Prioridad||''].map(csvEscape).join(','); data.push(r); });
+      const bom = '\ufeff'; const blob = new Blob([bom + data.join('\n')], { type: 'text/csv;charset=utf-8' });
+      const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = 'incidencias.csv'; document.body.appendChild(a); a.click(); document.body.removeChild(a); setTimeout(()=>URL.revokeObjectURL(url), 2000); toast('CSV descargado');
+    }
+    qs('#btnExportCsv').addEventListener('click', exportCsv);
+
+    // ===== Imprimir =====
+    function printPage(){ window.print(); }
+    qs('#btnPrint').addEventListener('click', printPage);
+
+    // ===== Init =====
+    function init(){ renderInc(); renderReq(); renderRonda(); renderCambio(); }
+   
